@@ -1,0 +1,149 @@
+#中文情緒分析
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""
+Program to provide generic parsing for all files in a user-specified directory.
+The program assumes the input files have been scrubbed,
+  i.e., HTML, ASCII-encoded binary, and any other embedded document structures that are not
+  intended to be analyzed have been deleted from the file.
+
+Dependencies:
+    Python:  MOD_Load_MasterDictionary_v2020.py
+    改成Python:  MOD_Load_MasterDictionary_ch.py
+    Data:    LoughranMcDonald_MasterDictionary_XXXX.csv
+
+The program outputs:
+   1.  File name
+   2.  File size (in bytes)
+   3.  Number of words (based on LM_MasterDictionary
+   4.  Proportion of positive words (use with care - see LM, JAR 2016)
+   5.  Proportion of negative words
+   6.  Proportion of uncertainty words
+   7.  Proportion of litigious words
+   8.  Proportion of modal-weak words
+   9.  Proportion of modal-moderate words
+  10.  Proportion of modal-strong words
+  11.  Proportion of constraining words (see Bodnaruk, Loughran and McDonald, JFQA 2015)
+  12.  Number of alphanumeric characters (a-z, A-Z)
+  13.  Number of digits (0-9)
+  14.  Number of numbers (collections of digits)
+  15.  Average number of syllables
+  16.  Average word length
+  17.  Vocabulary (see Loughran-McDonald, JF, 2015)
+
+  ND-SRAF
+  McDonald 201606 : updated 201803; 202107
+"""
+
+#下面兩行(pd、jieba)是針對中文我才導入的
+import pandas as pd
+import jieba
+import csv
+import glob
+import re
+import string
+import sys
+import datetime as dt
+sys.path.append(r'D:\essay\module')  # 放入模塊路徑 Modify to identify path for custom modules
+import MOD_Load_MasterDictionary_v2020 as LM
+
+# User defined directory for files to be parsed預作情緒分析的路徑及檔案
+TARGET_FILES = r'D:\essay\年報\111_ch.csv'
+# User defined file pointer to LM dictionary 字典路徑
+MASTER_DICTIONARY_FILE = r'D:\essay\dic_ch\中文字典.csv'
+MASTER_DICTIONARY_FILE = r'D:\essay\單辭辭典\LoughranMcDonald_MasterDictionary_2020 .csv'
+# User defined output file 要輸出的路徑及檔名
+OUTPUT_FILE = r'D:\essay\output\done_ch.csv'
+# Setup output
+OUTPUT_FIELDS = ['file name', 'file size', 'number of words', '% negative', '% positive',
+                 '# of numbers', 'avg # of syllables per word', 'average word length', 'vocabulary']
+#載入字典
+lm_dictionary = LM.load_masterdictionary(MASTER_DICTIONARY_FILE, print_flag=True)
+
+
+
+def main():
+
+    f_out = open(OUTPUT_FILE, 'w')
+    wr = csv.writer(f_out, lineterminator='\n')
+    wr.writerow(OUTPUT_FIELDS)
+    
+    """
+    1 .glob.glob（pathname), 返回所有匹配的文件路徑列表。它只有一個參數pathname，定義了文件路徑匹配規則，這裏可以是絕對路徑，也可以是相對路徑。
+    2 .glob.iglob(pathname), 獲取一個可編歷對象，使用它可以逐個獲取匹配的文件路徑名。與glob.glob()的區別是：glob.glob同時獲取所有的匹配路徑，而glob.iglob一次只獲取一個匹配路徑
+    file_list = glob.glob(TARGET_FILES) #讀取符合TARGET_FILES這個路徑的所有路徑
+    """
+    
+    n_files = 0
+    for file in file_list:
+        n_files += 1
+        print(f'{n_files:,} : {file}')
+        with open(file, 'r', encoding='UTF-8', errors='ignore') as f_in:
+            doc = f_in.read()
+        doc = re.sub('(May|MAY)', ' ', doc)  # drop all May month references
+        doc = doc.upper()  # for this parse caps aren't informative so shift
+
+        output_data = get_data(doc)
+        output_data[0] = file
+        output_data[1] = len(doc)
+        wr.writerow(output_data)
+        if n_files == 3: break
+
+
+def get_data(doc):
+
+    vdictionary = dict()
+    _odata = [0] * 16
+    total_syllables = 0
+    word_length = 0
+    
+    """自己的斷詞和情緒分數"""
+    chtoken=re.findall('\w+', doc)
+    #藉由 print(type(chtoken)) 發現現在chtoken的數據類型是list，而list不能做jieba.cut，所以要先轉成str才行
+    str3 = ''.join(chtoken)
+    mytoken=jieba.cut(str3,cut_all=True, HMM=True)
+    
+    """
+    a += b  就相当于  a = a + b，在Python中，“=”的计算方式是先算右边后算左边，也就是先算‘a + b’，
+    再将结果赋值给a，覆盖掉a以前的值。
+    所以，不要将‘=’读作等于，也不要理解为‘=’，而是从右往左读作‘将a+b的结果赋值给a’
+    >>_odata[2] += 1 代表_odata[2]=_odata[2] + 1
+
+    """
+    for i in mytoken:
+        #isdigit() ：检测字符串是否只由数字组成
+        if not i.isdigit() and len(i) > 1 and i in lm_dictionary:
+            _odata[2] += 1  # word count
+            word_length += len(i)
+            if i not in vdictionary:
+                vdictionary[i] = 1
+            if lm_dictionary[i].negative: _odata[3] += 1
+            if lm_dictionary[i].positive: _odata[4] += 1
+            total_syllables += lm_dictionary[i].syllables
+
+    #_odata[5] = len(re.findall('[A-Z]', doc))
+    #_odata[6] = len(re.findall('[0-9]', doc))
+    
+    # drop punctuation within numbers for number count 刪掉標點符號
+    doc = re.sub('(?!=[0-9])(\.|,)(?=[0-9])', '', doc)
+    doc = doc.translate(str.maketrans(string.punctuation, " " * len(string.punctuation)))
+    _odata[5] = len(re.findall(r'\b[-+\(]?[$€£]?[-+(]?\d+\)?\b', doc))
+    _odata[6] = total_syllables / _odata[2]
+    _odata[7] = word_length / _odata[2]
+    _odata[8] = len(vdictionary)
+    
+    # Convert counts to %
+    for i in range(3, 10 + 1):
+        _odata[i] = (_odata[i] / _odata[2]) * 100
+    # Vocabulary
+        
+    return _odata
+
+
+#if __name__ == '__main__':当模块被直接运行时，以下代码块将被运行，当模块是被导入时，代码块不被运行
+if __name__ == '__main__':
+    start = dt.datetime.now()
+    print(f'\n\n{start.strftime("%c")}\nPROGRAM NAME: {sys.argv[0]}\n')
+    main()
+    print(f'\n\nRuntime: {(dt.datetime.now()-start)}')
+    print(f'\nNormal termination.\n{dt.datetime.now().strftime("%c")}\n')
