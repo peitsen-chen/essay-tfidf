@@ -13,15 +13,15 @@ def load_masterdictionary(file_path, print_flag=False, f_log=None, get_other=Fal
     start_local = dt.datetime.now()
     # Setup dictionaries
     _master_dictionary = {}
-    _sentiment_categories = ['negative', 'positive', 'uncertainty', 'litigious', 
-                             'strong_modal', 'weak_modal', 'constraining', 'complexity']
+    #[]:代表裡面是放list序列資料
+    #_sentiment_categories = ['negative', 'positive', 'uncertainty', 'litigious', 
+    #                         'strong_modal', 'weak_modal', 'constraining', 'complexity']
+    _sentiment_categories = ['positive','neutral','negative', 'nonopinion', 'nonvocabulary']
     _sentiment_dictionaries = dict()
     for sentiment in _sentiment_categories:
         _sentiment_dictionaries[sentiment] = dict()
-   
-    # Load slightly modified common stopwords. 
-    # Dropped from traditional: A, I, S, T, DON, WILL, AGAINST
-    # Added: AMONG
+    
+    # Load slightly modified common stopwords.Dropped from traditional: A, I, S, T, DON, WILL, AGAINST,AMONG
     _stopwords = ['我']
 
     # Loop thru words and load dictionaries
@@ -32,18 +32,18 @@ def load_masterdictionary(file_path, print_flag=False, f_log=None, get_other=Fal
             """rstrip([chars]):删除 string 字符串末尾的指定字符。所以現在是刪除字串後面的換行('\n')。split：以,當分隔符"""
             cols = line.rstrip('\n').split(',')
             word = cols[0]
-
-
             _master_dictionary[word] = MasterDictionary(cols, _stopwords)
             for sentiment in _sentiment_categories:
-                if getattr(_master_dictionary[word], sentiment):
+                if getattr(_master_dictionary[word], sentiment):#getattr() 則是可以『取得』class 內定義變數的值，代表取得_master_dictionary裡的字所代表的情緒
                     _sentiment_dictionaries[sentiment][word] = 0
             _total_documents += _master_dictionary[cols[0]].doc_count
             if len(_master_dictionary) % 5000 == 0 and print_flag:
                 print(f'\r ...Loading Master Dictionary {len(_master_dictionary):,}', end='', flush=True)
-
+    
+    """以下式如果上面load_masterdictionary輸入true，才會跑的""" 
     if print_flag:
-        print('\r', end='')  # clear line
+        print('\r', end='')  # clear line。 \r實際意思就是return，就是回到本行行首，這就會把這一行在\r之前的輸出覆蓋掉
+        #打印出：換行 Master Dictionary loaded from file: 換行 路徑 換行。f-string，亦称为格式化字符串常量:在字串前後加入運算公式
         print(f'\nMaster Dictionary loaded from file:\n  {file_path}\n')
         print(f'  master_dictionary has {len(_master_dictionary):,} words.\n')
 
@@ -68,11 +68,13 @@ def load_masterdictionary(file_path, print_flag=False, f_log=None, get_other=Fal
         return _master_dictionary, _md_header, _sentiment_categories, _sentiment_dictionaries, _stopwords, _total_documents
     else:
         return _master_dictionary
-        
-#因為MasterDictionary一直沒有quit屬性，所以先定義quit函式
+    
+
+#因為MasterDictionary一直找不到quit屬性，所以先定義quit函式
 def quit():
     sys.exit()
 
+    
 class MasterDictionary:
     def __init__(self, cols, _stopwords):
         self.word = str(cols[0])
