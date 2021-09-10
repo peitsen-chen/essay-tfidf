@@ -9,7 +9,6 @@ Date: 201510 Updated: 202107
 import datetime as dt
 import sys
 
-
 def load_masterdictionary(file_path, print_flag=False, f_log=None, get_other=False):
     start_local = dt.datetime.now()
     # Setup dictionaries
@@ -29,10 +28,12 @@ def load_masterdictionary(file_path, print_flag=False, f_log=None, get_other=Fal
     with open(file_path) as f:
         _total_documents = 0
         _md_header = f.readline()  # Consume header line
-        print()
         for line in f:
+            """rstrip([chars]):删除 string 字符串末尾的指定字符。所以現在是刪除字串後面的換行('\n')。split：以,當分隔符"""
             cols = line.rstrip('\n').split(',')
             word = cols[0]
+
+
             _master_dictionary[word] = MasterDictionary(cols, _stopwords)
             for sentiment in _sentiment_categories:
                 if getattr(_master_dictionary[word], sentiment):
@@ -68,21 +69,24 @@ def load_masterdictionary(file_path, print_flag=False, f_log=None, get_other=Fal
     else:
         return _master_dictionary
 
+def quit():
+    sys.exit()
 
 class MasterDictionary:
     def __init__(self, cols, _stopwords):
+        self.word = str(cols[0])
+        print(self.word)
         for ptr, col in enumerate(cols):
             if col == '':
                 cols[ptr] = '0'
         try:
-            self.vocabulary = str(cols[0])
+            self.word = str(cols[0])
             self.word_count = int(cols[1])
             self.pos_fre = int(cols[2])
-            self.neu_fre = float(cols[3])
-            self.neg_fre = float(cols[4])
-            self.non_opinion = float(cols[5])
+            self.neu_fre = int(cols[3])
+            self.neg_fre = int(cols[4])
+            self.non_opinion = int(cols[5])
             self.non_voc = int(cols[6])
-            if self.word in _stopwords:
             if self.word in _stopwords:
                 self.stopword = True
             else:
