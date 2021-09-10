@@ -68,7 +68,8 @@ def load_masterdictionary(file_path, print_flag=False, f_log=None, get_other=Fal
         return _master_dictionary, _md_header, _sentiment_categories, _sentiment_dictionaries, _stopwords, _total_documents
     else:
         return _master_dictionary
-
+        
+#因為MasterDictionary一直沒有quit屬性，所以先定義quit函式
 def quit():
     sys.exit()
 
