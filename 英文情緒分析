@@ -38,12 +38,12 @@ import string
 import sys
 import datetime as dt
 sys.path.append(r'D:\essay\module')  # Modify to identify path for custom modules
-import MOD_Load_MasterDictionary_v2020 as LM
+import LMDIC as LM
 
 # User defined directory for files to be parsed
 TARGET_FILES = r'D:\essay\年報\111.csv'
-# User defined file pointer to LM dictionary
-MASTER_DICTIONARY_FILE = r'D:\essay\module\LoughranMcDonald_MasterDictionary_2020.csv'
+# User defined file pointer to LM dictionary 注意因為2020後面有空格(因為當是下載檔案時檔名有空格)
+MASTER_DICTIONARY_FILE = r'D:\essay\單辭辭典\LoughranMcDonald_MasterDictionary_2020 .csv'
 # User defined output file
 OUTPUT_FILE = r'D:\essay\output\d.csv'
 # Setup output
